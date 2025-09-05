@@ -68,7 +68,7 @@ killport () {
 
 # fuckYoBranches: Deletes local branches that have been merged into the base branch
 fuckYoBranches () {
-  git branch --merged | egrep -v "(^\*|master|main)" | xargs git branch -d
+  git branch --merged | egrep -v "(^\*|master|main|release)" | xargs git branch -d
 }
 
 # gitSlug: Returns a sluggified version of your git username.
@@ -88,6 +88,10 @@ gojira () {
   fi
 }
 
+changedFiles() {
+  git diff --name-only HEAD | xargs
+}
+
 ######################################
 # Misc
 ######################################
@@ -100,6 +104,15 @@ pullrailsmain () {
 rubocopmodified () {
   git ls-files -m | xargs ls -1 2>/dev/null | grep '\.rb$' | xargs bundle exec rubocop
 }
+fixeslintmodified () {
+  echo $1
+  if [ -z "$1" ]; then
+    echo "You need to specify a base branch to compare with, ya dingus!"
+  else
+    yarn eslint --fix $(git diff --name-only --diff-filter=ACMRTUXB $1 | grep -E "(.js$|.ts$|.tsx$)")
+  fi 
+}
+
 # mans: Manual search
 mans () {
   man $1 | grep -iC2 --color=always $2 | less
@@ -112,3 +125,64 @@ httpHeaders () {
 httpDebug () {
   /usr/bin/curl $@ -o /dev/null -w "dns: %{time_namelookup} connect: %{time_connect} pretransfer: %{time_pretransfer} starttransfer: %{time_starttransfer} total: %{time_total}\n";
 }
+
+trevgrok () {
+  echo $1
+  if [ -z "$1" ]; then
+    echo "You need to specify a localhost, ya dingus!"
+  else
+    ngrok http --domain=bursting-early-eel.ngrok-free.app $1
+  fi 
+}
+
+trevconsole () {
+  if [ -z "$1" ]; then
+    echo "Connecting to retirable-app"
+    heroku run bin/rails console --app retirable-app
+  else
+    heroku run bin/rails console --app $1
+  fi
+}
+
+fuckyocache () {
+  sudo
+  yarn cache clean
+  docker system prune -a
+  brew cleanup -s
+  rm -rf ~/Library/Caches/Homebrew/*
+  rm -rf ~/Library/Caches/*
+  rm -rf ~/Library/Developer/Xcode/DerivedData
+  rm -rf ~/Library/Caches/com.apple.dt.Xcode
+  rm -rf ~/Library/Developer/CoreSimulator
+}
+
+ls_size () {
+  du -h -d 1 | sort -hr | awk '{print $1, $2}'
+}
+
+
+start_retirable () {
+  tmux new-session -s retirable-dev -d
+  tmux split-window -h -t retirable-dev:0.0
+  tmux split-window -v -t retirable-dev:0.1
+
+  tmux send-keys -t retirable-dev:0.0 'eval "$(mise activate bash)" && bundle exec rails server' C-m
+  tmux send-keys -t retirable-dev:0.1 'eval "$(mise activate bash)" && yarn build --watch' C-m
+  tmux send-keys -t retirable-dev:0.2 'eval "$(mise activate bash)" && bundle exec rails c' C-m
+    
+  tmux new-window -t retirable-dev:1 -n "ngrok"
+  tmux send-keys -t retirable-dev:ngrok 'trevgrok 3000' C-m
+
+  tmux attach -t retirable-dev:0.0
+}
+
+stop_retirable () {
+  tmux send-keys -t retirable-dev:0.0 C-c
+  tmux send-keys -t retirable-dev:0.1 C-c
+  tmux send-keys -t retirable-dev:0.2 C-c
+
+  sleep 2
+
+  tmux kill-session -t retirable-dev
+}
+
