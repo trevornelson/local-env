@@ -160,6 +160,11 @@ ls_size () {
   du -h -d 1 | sort -hr | awk '{print $1, $2}'
 }
 
+imfeelinglucky () {
+  DB_NAME=prod_copy bin/rails runner \
+  "puts Rails.application.routes.url_helpers.advisor_login_url(household_id: Facts::Household.wealth_management_clients.sample.id, host: 'localhost', port: 3000, protocol: 'http')" \
+  | xargs open
+}
 
 start_retirable () {
   tmux new-session -s retirable-dev -d
