@@ -7,3 +7,4 @@
 - Set up Vundle https://github.com/VundleVim/Vundle.vim#quick-start 
 - Create a symlink in your local .vimrc file and the one in this repo `ln -s ~/local-env/.vimrc ~/.vimrc`
 - Launch vim and run `:PluginInstall`
+- Create a symlink between your global Claude Code config and the one in this repo `ln -s ~/local-env/CLAUDE.md ~/.claude/CLAUDE.md`
